@@ -97,6 +97,7 @@ static void *pthread_list_find_item(void *(*item_check)(esp_pthread_t *, void *a
 {
     esp_pthread_t *it;
     SLIST_FOREACH(it, &s_threads_list, list_node) {
+        // ESP_LOGD(TAG, "find thread %p - %p", it , check_arg);
         void *val = item_check(it, check_arg);
         if (val) {
             return val;
@@ -366,21 +367,22 @@ int pthread_join(pthread_t thread, void **retval)
             }
         }
     }
-    xSemaphoreGive(s_threads_mux);
+    //xSemaphoreGive(s_threads_mux);
 
     if (ret == 0) {
         if (wait) {
+            xSemaphoreGive(s_threads_mux);
             xTaskNotifyWait(0, 0, NULL, portMAX_DELAY);
             if (xSemaphoreTake(s_threads_mux, portMAX_DELAY) != pdTRUE) {
                 assert(false && "Failed to lock threads list!");
             }
             child_task_retval = pthread->retval;
             pthread_delete(pthread);
-            xSemaphoreGive(s_threads_mux);
         }
         vTaskDelete(handle);
     }
 
+    xSemaphoreGive(s_threads_mux);
     if (retval) {
         *retval = child_task_retval;
     }
@@ -451,10 +453,11 @@ void pthread_exit(void *value_ptr)
             pthread->state = PTHREAD_TASK_STATE_EXIT;
         }
     }
-    xSemaphoreGive(s_threads_mux);
 
     ESP_LOGD(TAG, "Task stk_wm = %d", uxTaskGetStackHighWaterMark(NULL));
 
+    xSemaphoreGive(s_threads_mux);
+    
     if (detached) {
         vTaskDelete(NULL);
     } else {

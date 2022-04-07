@@ -85,7 +85,7 @@ esp_err_t esp_efuse_utility_process(const esp_efuse_desc_t* field[], void* ptr, 
     int i = 0;
     while (err == ESP_OK && req_size > bits_counter && field[i] != NULL) {
         if (check_range_of_bits(field[i]->efuse_block, field[i]->bit_start, field[i]->bit_count) == false) {
-            ESP_LOGE(TAG, "Range of data does not match the coding scheme");
+            ESP_EARLY_LOGE(TAG, "Range of data does not match the coding scheme");
             err = ESP_ERR_CODING;
         }
         int i_reg = 0;
@@ -98,7 +98,7 @@ esp_err_t esp_efuse_utility_process(const esp_efuse_desc_t* field[], void* ptr, 
             if ((bits_counter + num_bits) > req_size) { // Limits the length of the field.
                 num_bits = req_size - bits_counter;
             }
-            ESP_LOGD(TAG, "In EFUSE_BLK%d__DATA%d_REG is used %d bits starting with %d bit",
+            ESP_EARLY_LOGD(TAG, "In EFUSE_BLK%d__DATA%d_REG is used %d bits starting with %d bit",
                     (int)field[i]->efuse_block, num_reg, num_bits, start_bit);
             err = func_proc(num_reg, field[i]->efuse_block, start_bit, num_bits, ptr, &bits_counter);
             ++i_reg;
@@ -186,7 +186,7 @@ void esp_efuse_utility_reset(void)
 void esp_efuse_utility_burn_efuses(void)
 {
 #ifdef CONFIG_EFUSE_VIRTUAL
-    ESP_LOGW(TAG, "Virtual efuses enabled: Not really burning eFuses");
+    ESP_EARLY_LOGW(TAG, "Virtual efuses enabled: Not really burning eFuses");
     for (int num_block = 0; num_block < COUNT_EFUSE_BLOCKS; num_block++) {
         esp_efuse_coding_scheme_t scheme = esp_efuse_get_coding_scheme(num_block);
         if (scheme == EFUSE_CODING_SCHEME_3_4) {
@@ -253,16 +253,16 @@ void esp_efuse_utility_erase_virt_blocks()
 void esp_efuse_utility_update_virt_blocks()
 {
 #ifdef CONFIG_EFUSE_VIRTUAL
-    ESP_LOGI(TAG, "Loading virtual efuse blocks from real efuses");
+    ESP_EARLY_LOGI(TAG, "Loading virtual efuse blocks from real efuses");
     for (int num_block = 0; num_block < COUNT_EFUSE_BLOCKS; num_block++) {
         int subblock = 0;
         for (uint32_t addr_rd_block = range_read_addr_blocks[num_block].start; addr_rd_block <= range_read_addr_blocks[num_block].end; addr_rd_block += 4) {
             virt_blocks[num_block][subblock++] = REG_READ(addr_rd_block);
         }
-        ESP_LOGD(TAG, "virt_blocks[%d] is filled by EFUSE_BLOCK%d", num_block, num_block);
+        ESP_EARLY_LOGD(TAG, "virt_blocks[%d] is filled by EFUSE_BLOCK%d", num_block, num_block);
     }
 #else
-    ESP_LOGI(TAG, "Emulate efuse is disabled");
+    ESP_EARLY_LOGI(TAG, "Emulate efuse is disabled");
 #endif
 }
 
@@ -303,7 +303,7 @@ esp_err_t esp_efuse_utility_write_reg(esp_efuse_block_t efuse_block, unsigned in
     esp_err_t err = ESP_OK;
     uint32_t reg = esp_efuse_utility_read_reg(efuse_block, num_reg);
     if (reg & reg_to_write) {
-        ESP_LOGE(TAG, "Repeated programming of programmed bits is strictly forbidden 0x%08x", reg & reg_to_write);
+        ESP_EARLY_LOGE(TAG, "Repeated programming of programmed bits is strictly forbidden 0x%08x", reg & reg_to_write);
         err = ESP_ERR_EFUSE_REPEATED_PROG;
     } else {
         write_reg(efuse_block, num_reg, reg_to_write);
@@ -498,7 +498,7 @@ esp_err_t esp_efuse_utility_apply_new_coding_scheme()
                             // check that place is free.
                             for (int n = st_offset_buf; n < st_offset_buf + 6; ++n) {
                                 if (buf_r_data[n] != 0) {
-                                    ESP_LOGE(TAG, "Bits are not empty. Write operation is forbidden.");
+                                    ESP_EARLY_LOGE(TAG, "Bits are not empty. Write operation is forbidden.");
                                     return ESP_ERR_CODING;
                                 }
                             }

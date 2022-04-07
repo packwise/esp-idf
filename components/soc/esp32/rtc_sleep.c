@@ -25,6 +25,9 @@
 #include "soc/rtc.h"
 #include "esp32/rom/ets_sys.h"
 
+extern void spi_flash_disable_interrupts_caches_and_other_cpu();
+extern void spi_flash_enable_interrupts_caches_and_other_cpu();
+
 #define MHZ (1000000)
 
 /* Various delays to be programmed into power control state machines */
@@ -220,6 +223,8 @@ void rtc_sleep_set_wakeup_time(uint64_t t)
 
 uint32_t rtc_sleep_start(uint32_t wakeup_opt, uint32_t reject_opt)
 {
+    spi_flash_disable_interrupts_caches_and_other_cpu();
+
     REG_SET_FIELD(RTC_CNTL_WAKEUP_STATE_REG, RTC_CNTL_WAKEUP_ENA, wakeup_opt);
     WRITE_PERI_REG(RTC_CNTL_SLP_REJECT_CONF_REG, reject_opt);
 
@@ -230,6 +235,9 @@ uint32_t rtc_sleep_start(uint32_t wakeup_opt, uint32_t reject_opt)
             RTC_CNTL_SLP_REJECT_INT_RAW | RTC_CNTL_SLP_WAKEUP_INT_RAW) == 0) {
         ;
     }
+
+    spi_flash_enable_interrupts_caches_and_other_cpu();
+    
     /* In deep sleep mode, we never get here */
     uint32_t reject = REG_GET_FIELD(RTC_CNTL_INT_RAW_REG, RTC_CNTL_SLP_REJECT_INT_RAW);
     SET_PERI_REG_MASK(RTC_CNTL_INT_CLR_REG,
